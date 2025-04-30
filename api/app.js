@@ -176,13 +176,15 @@ async function getYouTubeTranscript(videoId) {
         console.log("Fetching transcript for video ID:", videoId);
         const response = await axios.get(`https://www.youtube.com/watch?v=${videoId}`);
         const html = response.data;
+        console.log("HTML length: ", html.length); // Log first 200 chars of HTML for debugging
 
         // Try multiple methods to extract captions
         let captionsMatch = html.split('"captions":')[1]?.split(',"videoDetails')[0];
-
+        console.log("\nCaptions: ", captionsMatch.substring(0, 1000) + '...'); // Log first 200 chars of captions for debugging
         if (!captionsMatch) {
             // Try alternate pattern
             captionsMatch = html.split('"captionTracks":')[1]?.split(',"audioTracks')[0];
+            console.log("\nCaptions: ", captionsMatch.substring(0, 1000) + '...'); // Log first 200 chars of captions for debugging
 
             if (!captionsMatch) {
                 console.error("Transcripts not available for this video");
