@@ -48,42 +48,59 @@ const schema = {
     }
 };
 
-async function generateQuestions(transcript) {
+async function generateQuestions(videoId) {
     try {
-        // Clean transcript further to improve processing
-        const cleanedTranscript = transcript
-            .replace(/(\w+)\s\1\s\1/g, '$1 $1') // Remove triple repeated words
-            .replace(/(\w+)\s\1/g, '$1')        // Remove double repeated words
-            .replace(/\s{2,}/g, ' ')           // Remove multiple spaces
-            .trim();
+        // // Clean transcript further to improve processing
+        // const cleanedTranscript = transcript
+        //     .replace(/(\w+)\s\1\s\1/g, '$1 $1') // Remove triple repeated words
+        //     .replace(/(\w+)\s\1/g, '$1')        // Remove double repeated words
+        //     .replace(/\s{2,}/g, ' ')           // Remove multiple spaces
+        //     .trim();
+
+        const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+        const prompt = `
+        Generate multiple-choice educational quiz questions based on this YouTube video:
+
+        GUIDANCE FOR GENERATING GOOD QUESTIONS:
+        1. Create questions about key concepts, facts, definitions, or ideas.
+        2. Make questions clear and specific - each should stand on its own without needing additional context.
+        3. For each question, provide exactly 4 options with only one correct answer.
+        4. Focus on the main educational content in the video content.
+        5. Assign higher confidence scores (0.7+) to questions about clearly stated information.
+        6. If the content is technical or specialized, include necessary context within the question.
+        7. Avoid creating questions about ambiguous or unclear parts of the video content.
+        
+        Remember to create educational questions that test understanding of the content.`;
+
 
         const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-pro",
+            model: "gemini-2.0-flash",
             generationConfig: {
                 responseMimeType: "application/json",
                 responseSchema: schema,
                 temperature: 0.2,  // Slightly increased for more variety
                 maxOutputTokens: 8000,
-            },
+            }
         });
 
-        const prompt = `
-        Generate multiple-choice educational quiz questions based on this YouTube video transcript:
+        const result = await model.generateContent({
+            contents: [{
+                role: 'user',
+                parts: [
+                    {
+                        text: prompt
+                    }, 
+                    {
+                        fileData: {
+                            mimeType: 'video/mp4',
+                            fileUri: videoUrl,
+                        }
+                    }
+                ]
+            }]
+        });
 
-        GUIDANCE FOR GENERATING GOOD QUESTIONS:
-        1. Create questions about key concepts, facts, definitions, or ideas from the transcript.
-        2. Make questions clear and specific - each should stand on its own without needing additional context.
-        3. For each question, provide exactly 4 options with only one correct answer.
-        4. Focus on the main educational content in the transcript.
-        5. Assign higher confidence scores (0.7+) to questions about clearly stated information.
-        6. If the content is technical or specialized, include necessary context within the question.
-        7. Avoid creating questions about ambiguous or unclear parts of the transcript.
-
-        Transcript: ${cleanedTranscript}
-        
-        Remember to create educational questions that test understanding of the content.`;
-
-        const result = await model.generateContent(prompt);
 
         if (!result.response || !result.response.text) {
             throw new Error("Invalid response from AI model.");
@@ -144,19 +161,20 @@ app.post('/api/get-transcript', async (req, res) => {
 
     try {
         console.log(`Processing request for video ID: ${videoId}`);
-        const transcriptResult = await getYouTubeTranscript(videoId);
+        // const transcriptResult = await getYouTubeTranscript(videoId);
 
-        // Check if transcript result contains an error
-        if (typeof transcriptResult === 'object' && transcriptResult.error) {
-            console.log("Transcript error:", transcriptResult.error);
-            return res.status(400).json({ error: transcriptResult.error });
-        }
+        // // Check if transcript result contains an error
+        // if (typeof transcriptResult === 'object' && transcriptResult.error) {
+        //     console.log("Transcript error:", transcriptResult.error);
+        //     return res.status(400).json({ error: transcriptResult.error });
+        // }
 
-        // At this point we know we have a valid transcript string
-        const transcript = transcriptResult;
-        console.log(`Transcript fetched successfully (${transcript.length} characters). Generating questions...`);
+        // // At this point we know we have a valid transcript string
+        // const transcript = transcriptResult;
+        // console.log(`Transcript fetched successfully (${transcript.length} characters). Generating questions...`);
 
-        const result = await generateQuestions(transcript);
+        // const result = await generateQuestions(transcript);
+        const result = await generateQuestions(videoId);
         console.log(`Generated ${result.length} questions successfully`);
 
         res.json({ result });
