@@ -57,6 +57,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 body: JSON.stringify({ videoId }),
             });
 
+            // Check for specific 503 Service Unavailable error (Vercel timeout)
+            if (response.status === 503) {
+                showPopup("Video Too Long", 
+                    "This application supports videos under 10 minutes due to server timeout limitations. Please try a shorter video.", 
+                    "error");
+                resetButtonState();
+                return;
+            }
+
             // Check for non-OK responses
             if (!response.ok) {
                 const errorData = await response.json();
